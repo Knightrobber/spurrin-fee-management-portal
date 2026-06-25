@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//usr/local/bin/**)",
+      "Read(//Users/meera/**)",
+      "Read(//Users/meera/.volta/**)",
+      "Bash(curl -sI --max-time 8 https://nodejs.org/dist/index.json)",
+      "Bash(echo \"EXIT=$?\")",
+      "Bash(sysctl -n machdep.cpu.brand_string)",
+      "Bash(sleep 6; cat /tmp/vite_dev.log)",
+      "Read(//private/tmp/**)",
+      "Bash(curl -s --max-time 8 -o /dev/null -w \"HTTP %{http_code}\\\\n\" http://localhost:5173/)",
+      "Bash(curl -s --max-time 20 \"http://localhost:5173/src/main.tsx\" -o /tmp/main_compiled.js -w \"HTTP %{http_code}\\\\n\")",
+      "Read(//tmp/**)"
+    ]
+  }
+}
