@@ -1,0 +1,8 @@
+model Category {
+  id   BigInt @id @default(autoincrement())
+  name String
+
+  feeStructures FeeStructure[]
+
+  @@map("categories")
+}

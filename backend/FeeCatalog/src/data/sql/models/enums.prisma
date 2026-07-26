@@ -1,0 +1,6 @@
+/// Lifecycle status shared by fee_structure_versions and addon_versions.
+enum VersionStatus {
+  DRAFT
+  ACTIVE
+  SUPERSEDED
+}

@@ -1,0 +1,15 @@
+model Term {
+  id BigInt @id @default(autoincrement())
+
+  feeStructureVersionId BigInt              @map("fee_structure_version_id")
+  feeStructureVersion   FeeStructureVersion @relation(fields: [feeStructureVersionId], references: [id])
+
+  startDate             DateTime @map("start_date") @db.Date
+  endDate               DateTime @map("end_date") @db.Date
+  dueDate               DateTime @map("due_date") @db.Date
+  paymentWindowOpenDate DateTime @map("payment_window_open_date") @db.Date
+
+  components TermComponent[]
+
+  @@map("terms")
+}

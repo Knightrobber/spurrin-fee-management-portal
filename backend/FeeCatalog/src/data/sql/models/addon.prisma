@@ -1,0 +1,8 @@
+model Addon {
+  id          BigInt  @id @default(autoincrement())  
+  isRecurring Boolean @map("is_recurring")
+
+  versions AddonVersion[]
+
+  @@map("addons")
+}

@@ -1,0 +1,39 @@
+import Fastify, { FastifyInstance } from 'fastify';
+import fastifySwagger from '@fastify/swagger';
+import fastifySwaggerUi from '@fastify/swagger-ui';
+import { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
+import { healthRoutes } from './routes/health/health.route';
+import { feeStructureRoutes } from './routes/fee-structures/fee-structures.route';
+import { registerErrorHandler } from './plugins/error-handler';
+
+export async function buildApp(): Promise<FastifyInstance> {
+  const app = Fastify({
+    logger: {
+      transport:
+        process.env.NODE_ENV === 'production'
+          ? undefined
+          : { target: 'pino-pretty', options: { translateTime: 'HH:MM:ss', ignore: 'pid,hostname' } }
+    }
+  }).withTypeProvider<TypeBoxTypeProvider>();
+
+  registerErrorHandler(app);
+
+  await app.register(fastifySwagger, {
+    openapi: {
+      info: {
+        title: 'Fee Catalog API',
+        description:
+          'API for managing fee structures, add-ons, courses, categories, and batches for medical college admissions.',
+        version: '0.1.0'
+      }
+    }
+  });
+
+  await app.register(fastifySwaggerUi, {
+    routePrefix: '/documentation'
+  });
+
+  await app.register(healthRoutes, { prefix: '/health' });
+  await app.register(feeStructureRoutes, { prefix: '/fee-structures' });
+  return app;
+}

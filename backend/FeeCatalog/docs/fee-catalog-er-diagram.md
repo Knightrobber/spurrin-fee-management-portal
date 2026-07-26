@@ -1,4 +1,4 @@
-# Fee Catalog — ER Diagram
+# Fee Catalog — ER Diagram (SQL)
 
 Fee structures are **per (course, category, batch)**:
 
@@ -17,63 +17,86 @@ The fee catalog is owned by **Finance**. Typical actions:
 - **Manage add-ons** — create hostel / food / fine / discount add-ons and publish new versions when their amounts change.
 
 ## Data model
-Terms, components, and one-time costs are **embedded** inside a `feeStructures` document; courses / categories / batches / addons are separate collections.
+`fee_structures` holds the stable identity (course, category, batch); everything that changes per version lives in `fee_structure_versions`. Same split for `addons` and `addon_versions`.
 
 ```mermaid
 erDiagram
-    courses       ||--o{ feeStructures : course
-    categories    ||--o{ feeStructures : "quota / seat type"
-    batches       ||--o{ feeStructures : batch
-    feeStructures ||--o{ terms : embeds
-    terms         ||--o{ components : embeds
-    feeStructures ||--o{ oneTimeCosts : embeds
+    courses                 ||--o{ fee_structures          : course
+    categories              ||--o{ fee_structures          : "quota / seat type"
+    batches                 ||--o{ fee_structures          : batch
+    fee_structures          ||--o{ fee_structure_versions  : versions
+    fee_structure_versions  ||--o{ terms                   : contains
+    terms                   ||--o{ term_components         : contains
+    fee_structure_versions  ||--o{ one_time_costs          : has
+    addons                  ||--o{ addon_versions          : versions
 
     courses {
-      objectId _id
+      bigint id PK
       string name
-      float durationYears
+      float duration_years
     }
     categories {
-      objectId _id
+      bigint id PK
       string name
     }
     batches {
-      objectId _id
+      bigint id PK
       string name
-      date startDate
-      date endDate
+      date start_date
+      date end_date
     }
-    feeStructures {
-      objectId _id
-      objectId lineageId
-      int version
+    fee_structures {
+      bigint id PK
+      bigint course FK
+      bigint category FK
+      bigint batch FK
+    }
+    fee_structure_versions {
+      bigint id PK
+      bigint fee_structure_id FK
+      string name       
       string status
-      objectId courseId FK
-      objectId categoryId FK
-      objectId batchId FK
-      int lateFeePerDay
+      int late_fee_per_day
+      int payment_window_offset_days
+      int due_date_offset_days
+      timestamp created_at
+      bigint created_by FK
     }
     terms {
-      date startDate
-      date endDate
-      date dueDate
-      date paymentWindowOpenDate
+      bigint id PK
+      bigint fee_structure_version_id FK
+      date start_date
+      date end_date
+      date due_date
+      date payment_window_open_date
     }
-    components {
+    term_components {
+      bigint id PK
+      bigint term_id FK
       string name
       int amount
     }
-    oneTimeCosts {
+    one_time_costs {
+      bigint id PK
+      bigint fee_structure_version_id FK
       string name
       int amount
-      bool refundable
     }
     addons {
-      objectId _id
-      objectId lineageId
+      bigint id PK
+      string name
+      bool is_recurring
+    }
+    addon_versions {
+      bigint id PK
+      bigint addon_id FK
       int version
       string status
-      bool isRecurring
-      string applyMode
+      int amount
+      string apply_mode
+      bool approval_needed
+      string approver_role
+      timestamp created_at
+      bigint created_by FK
     }
 ```

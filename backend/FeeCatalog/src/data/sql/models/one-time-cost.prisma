@@ -1,0 +1,11 @@
+model OneTimeCost {
+  id BigInt @id @default(autoincrement())
+
+  feeStructureVersionId BigInt              @map("fee_structure_version_id")
+  feeStructureVersion   FeeStructureVersion @relation(fields: [feeStructureVersionId], references: [id])
+
+  name   String
+  amount Int
+
+  @@map("one_time_costs")
+}

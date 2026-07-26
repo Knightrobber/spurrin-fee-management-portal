@@ -1,0 +1,19 @@
+model FeeStructureVersion {
+  id BigInt @id @default(autoincrement())
+
+  feeStructureId BigInt       @map("fee_structure_id")
+  feeStructure   FeeStructure @relation(fields: [feeStructureId], references: [id])
+
+  name                    String
+  status                  VersionStatus
+  lateFeePerDay           Int      @map("late_fee_per_day")
+  paymentWindowOffsetDays Int      @map("payment_window_offset_days")
+  dueDateOffsetDays       Int      @map("due_date_offset_days")
+  createdAt               DateTime @default(now()) @map("created_at")
+  createdBy               BigInt   @map("created_by")
+
+  terms        Term[]
+  oneTimeCosts OneTimeCost[]
+
+  @@map("fee_structure_versions")
+}

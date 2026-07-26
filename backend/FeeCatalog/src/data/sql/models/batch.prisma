@@ -1,0 +1,10 @@
+model Batch {
+  id        BigInt   @id @default(autoincrement())
+  name      String
+  startDate DateTime @map("start_date") @db.Date
+  endDate   DateTime @map("end_date") @db.Date
+
+  feeStructures FeeStructure[]
+
+  @@map("batches")
+}

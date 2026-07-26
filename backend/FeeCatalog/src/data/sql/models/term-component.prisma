@@ -1,0 +1,11 @@
+model TermComponent {
+  id BigInt @id @default(autoincrement())
+
+  termId BigInt @map("term_id")
+  term   Term   @relation(fields: [termId], references: [id])
+
+  name   String
+  amount Int
+
+  @@map("term_components")
+}

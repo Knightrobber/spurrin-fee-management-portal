@@ -1,0 +1,9 @@
+model Course {
+  id            BigInt @id @default(autoincrement())
+  name          String
+  durationYears Float  @map("duration_years")
+
+  feeStructures FeeStructure[]
+
+  @@map("courses")
+}

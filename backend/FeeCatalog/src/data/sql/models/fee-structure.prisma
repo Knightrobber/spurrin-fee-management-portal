@@ -1,0 +1,16 @@
+model FeeStructure {
+  id BigInt @id @default(autoincrement())
+
+  courseId   BigInt @map("course")
+  categoryId BigInt @map("category")
+  batchId    BigInt @map("batch")
+
+  course   Course   @relation(fields: [courseId], references: [id])
+  category Category @relation(fields: [categoryId], references: [id])
+  batch    Batch    @relation(fields: [batchId], references: [id])
+
+  versions FeeStructureVersion[]
+
+  @@unique([courseId, categoryId, batchId])
+  @@map("fee_structures")
+}

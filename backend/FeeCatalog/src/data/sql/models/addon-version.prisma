@@ -1,0 +1,18 @@
+model AddonVersion {
+  id BigInt @id @default(autoincrement())
+  name        String
+  addonId BigInt @map("addon_id")
+  addon   Addon  @relation(fields: [addonId], references: [id])
+
+  version        Int
+  status         VersionStatus
+  amount         Int
+  applyMode      String   @map("apply_mode")
+  approvalNeeded Boolean  @map("approval_needed")
+  approverRole   String?  @map("approver_role")
+  createdAt      DateTime @default(now()) @map("created_at")
+  createdBy      BigInt   @map("created_by")
+
+  @@unique([addonId, version])
+  @@map("addon_versions")
+}
