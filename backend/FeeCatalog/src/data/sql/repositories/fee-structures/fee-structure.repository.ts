@@ -3,17 +3,15 @@ import { dbClient } from '../../client';
 import { FeeStructureConflictError, InvalidFeeStructureReferenceError } from './fee-structure.errors';
 import { CreateFeeStructureData } from './fee-structure.types';
 
-const feeStructureWithFirstVersionInclude = {
-  versions: {
-    include: {
-      terms: { include: { components: true } },
-      oneTimeCosts: true
-    }
-  }
-} satisfies Prisma.FeeStructureInclude;
-
-export type FeeStructureWithFirstVersion = Prisma.FeeStructureGetPayload<{
-  include: typeof feeStructureWithFirstVersionInclude;
+export type FeeStructureDetail = Prisma.FeeStructureGetPayload<{
+  include: {
+    versions: {
+      include: {
+        terms: { include: { components: true };};
+        oneTimeCosts: true;
+      };
+    };
+  };
 }>;
 
 export type { CreateFeeStructureData };
@@ -55,11 +53,18 @@ function toPrismaCreateInput(data: CreateFeeStructureData): Prisma.FeeStructureU
  */
 export async function createFeeStructureWithFirstVersion(
   data: CreateFeeStructureData
-): Promise<FeeStructureWithFirstVersion> {
+): Promise<FeeStructureDetail> {
   try {
     return await dbClient.feeStructure.create({
       data: toPrismaCreateInput(data),
-      include: feeStructureWithFirstVersionInclude
+      include: {
+        versions: {
+          include: {
+            terms: { include: { components: true } },
+            oneTimeCosts: true
+          }
+        }
+      }
     });
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
@@ -72,6 +77,27 @@ export async function createFeeStructureWithFirstVersion(
     }
     throw error;
   }
+}
+
+/**
+ * Fetches a fee structure (lineage) together with every version, its terms,
+ * term components, and one-time costs. Returns `null` when no fee structure
+ * with the given id exists.
+ */
+export async function findFeeStructureById(id: bigint): Promise<FeeStructureDetail | null> {
+  return dbClient.feeStructure.findUnique({
+    where: { id },
+    relationLoadStrategy: 'join',
+    include: {
+      versions: {
+        orderBy: { id: 'asc' },
+        include: {
+          terms: { include: { components: true }, orderBy: { startDate: 'asc' } },
+          oneTimeCosts: true
+        }
+      }
+    }
+  });
 }
 
 

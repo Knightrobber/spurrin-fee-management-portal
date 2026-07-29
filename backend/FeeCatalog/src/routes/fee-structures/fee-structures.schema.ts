@@ -84,7 +84,7 @@ const feeStructureAttributesSchema = Type.Object({
   oneTimeCosts: Type.Array(oneTimeCostResponseSchema)
 });
 
-export const createFeeStructureResponseSchema = Type.Object({
+export const feeStructureResourceSchema = Type.Object({
   data: Type.Object({
     type: Type.Literal('fee-structures'),
     id: Type.String(),
@@ -92,7 +92,11 @@ export const createFeeStructureResponseSchema = Type.Object({
   })
 });
 
-export type CreateFeeStructureResponse = Static<typeof createFeeStructureResponseSchema>;
+export type FeeStructureResource = Static<typeof feeStructureResourceSchema>;
+
+export const createFeeStructureResponseSchema = feeStructureResourceSchema;
+
+export type CreateFeeStructureResponse = FeeStructureResource;
 
 export const CreateFeeStructureSchema = {
   description:
@@ -103,5 +107,25 @@ export const CreateFeeStructureSchema = {
     201: createFeeStructureResponseSchema,
     400: errorResponseSchema,
     409: errorResponseSchema
+  }
+};
+
+export const getFeeStructureParamsSchema = Type.Object({
+  id: Type.String({ pattern: '^[1-9][0-9]*$', description: 'Fee structure (lineage) id' })
+});
+
+export type GetFeeStructureParams = Static<typeof getFeeStructureParamsSchema>;
+
+export type GetFeeStructureResponse = FeeStructureResource;
+
+export const GetFeeStructureSchema = {
+  description:
+    'Returns the full detail of a fee structure: current version, all terms with their component breakdown, and one-time costs.',
+  tags: ['fee-structures'],
+  params: getFeeStructureParamsSchema,
+  response: {
+    200: feeStructureResourceSchema,
+    400: errorResponseSchema,
+    404: errorResponseSchema
   }
 };

@@ -1,6 +1,11 @@
 import { FastifyReply, FastifyRequest } from 'fastify';
-import { CreateFeeStructureBody, CreateFeeStructureResponse } from './fee-structures.schema';
-import { createFeeStructure } from './fee-structures.service';
+import {
+  CreateFeeStructureBody,
+  CreateFeeStructureResponse,
+  GetFeeStructureParams,
+  GetFeeStructureResponse
+} from './fee-structures.schema';
+import { createFeeStructure, getFeeStructureById } from './fee-structures.service';
 
 export async function postFeeStructureHandler(
   request: FastifyRequest<{ Body: CreateFeeStructureBody }>,
@@ -12,4 +17,10 @@ export async function postFeeStructureHandler(
   reply.code(201);
 
   return resource;
+}
+
+export async function getFeeStructureHandler(
+  request: FastifyRequest<{ Params: GetFeeStructureParams }>
+): Promise<GetFeeStructureResponse> {
+  return getFeeStructureById(request.params.id);
 }

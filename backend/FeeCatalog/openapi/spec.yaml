@@ -308,3 +308,578 @@ paths:
                         detail:
                           description: Human-readable explanation specific to this error
                           type: string
+  /fee-structures/{id}:
+    get:
+      tags:
+        - fee-structures
+      description: "Returns the full detail of a fee structure: current version, all
+        terms with their component breakdown, and one-time costs."
+      parameters:
+        - schema:
+            pattern: ^[1-9][0-9]*$
+            type: string
+          in: path
+          name: id
+          required: true
+          description: Fee structure (lineage) id
+      responses:
+        "200":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    type: object
+                    required:
+                      - type
+                      - id
+                      - attributes
+                    properties:
+                      type:
+                        type: string
+                        enum:
+                          - fee-structures
+                      id:
+                        type: string
+                      attributes:
+                        type: object
+                        required:
+                          - courseId
+                          - categoryId
+                          - batchId
+                          - lineageId
+                          - versionId
+                          - version
+                          - name
+                          - status
+                          - lateFeePerDay
+                          - paymentWindowOffsetDays
+                          - dueDateOffsetDays
+                          - createdAt
+                          - terms
+                          - oneTimeCosts
+                        properties:
+                          courseId:
+                            type: integer
+                          categoryId:
+                            type: integer
+                          batchId:
+                            type: integer
+                          lineageId:
+                            description: Stable id shared by every version of this fee structure
+                            type: string
+                          versionId:
+                            description: id of this specific version
+                            type: string
+                          version:
+                            description: Sequential version number within the lineage
+                            type: integer
+                          name:
+                            type: string
+                          status:
+                            anyOf:
+                              - type: string
+                                enum:
+                                  - DRAFT
+                              - type: string
+                                enum:
+                                  - ACTIVE
+                              - type: string
+                                enum:
+                                  - SUPERSEDED
+                          lateFeePerDay:
+                            type: integer
+                          paymentWindowOffsetDays:
+                            type: integer
+                          dueDateOffsetDays:
+                            type: integer
+                          createdAt:
+                            description: ISO 8601 date-time
+                            type: string
+                          terms:
+                            type: array
+                            items:
+                              type: object
+                              required:
+                                - startDate
+                                - endDate
+                                - dueDate
+                                - paymentWindowOpenDate
+                                - components
+                              properties:
+                                startDate:
+                                  type: string
+                                endDate:
+                                  type: string
+                                dueDate:
+                                  type: string
+                                paymentWindowOpenDate:
+                                  type: string
+                                components:
+                                  type: array
+                                  items:
+                                    type: object
+                                    required:
+                                      - name
+                                      - amount
+                                    properties:
+                                      name:
+                                        type: string
+                                      amount:
+                                        type: integer
+                          oneTimeCosts:
+                            type: array
+                            items:
+                              type: object
+                              required:
+                                - name
+                                - amount
+                              properties:
+                                name:
+                                  type: string
+                                amount:
+                                  type: integer
+        "400":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - errors
+                properties:
+                  errors:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - status
+                        - code
+                        - title
+                        - detail
+                      properties:
+                        status:
+                          description: HTTP status code, as a string
+                          type: string
+                        code:
+                          description: Machine-readable domain error code
+                          type: string
+                        title:
+                          description: Short, human-readable error name
+                          type: string
+                        detail:
+                          description: Human-readable explanation specific to this error
+                          type: string
+        "404":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - errors
+                properties:
+                  errors:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - status
+                        - code
+                        - title
+                        - detail
+                      properties:
+                        status:
+                          description: HTTP status code, as a string
+                          type: string
+                        code:
+                          description: Machine-readable domain error code
+                          type: string
+                        title:
+                          description: Short, human-readable error name
+                          type: string
+                        detail:
+                          description: Human-readable explanation specific to this error
+                          type: string
+  /searches/page:
+    get:
+      tags:
+        - searches
+      description: "Runs a faceted search over fee structures: returns the matching
+        results (as relationships/included resources), the available filter
+        options (facets), and the total match count. Only page[size] is honoured
+        — this endpoint is not offset-paginated."
+      parameters:
+        - schema:
+            type: string
+          in: query
+          name: filter[searchTerm]
+          required: false
+          description: Free-text, partial (case-insensitive) match against the fee
+            structure name.
+        - schema:
+            minimum: 1
+            type: integer
+          in: query
+          name: filter[courseId]
+          required: false
+          description: Exact match, single course id.
+        - schema:
+            minimum: 1
+            type: integer
+          in: query
+          name: filter[categoryId]
+          required: false
+          description: Exact match, single category id.
+        - schema:
+            minimum: 1
+            type: integer
+          in: query
+          name: filter[batchId]
+          required: false
+          description: Exact match, single batch id.
+        - schema:
+            anyOf:
+              - type: string
+                enum:
+                  - DRAFT
+              - type: string
+                enum:
+                  - ACTIVE
+              - type: string
+                enum:
+                  - SUPERSEDED
+          in: query
+          name: filter[status]
+          required: false
+          description: Version status to match. Defaults to ACTIVE when omitted.
+        - schema:
+            minimum: 1
+            maximum: 200
+            default: 20
+            type: integer
+          in: query
+          name: page[size]
+          required: false
+          description: Maximum number of results to return.
+      responses:
+        "200":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                  - included
+                properties:
+                  data:
+                    type: object
+                    required:
+                      - type
+                      - attributes
+                      - relationships
+                    properties:
+                      type:
+                        type: string
+                        enum:
+                          - fee-structure-searches
+                      attributes:
+                        type: object
+                        required:
+                          - totalCount
+                          - facets
+                        properties:
+                          totalCount:
+                            description: Total number of results matching the filters.
+                            type: integer
+                          facets:
+                            type: object
+                            required:
+                              - courses
+                              - categories
+                              - batches
+                            properties:
+                              courses:
+                                type: array
+                                items:
+                                  type: object
+                                  required:
+                                    - id
+                                    - name
+                                  properties:
+                                    id:
+                                      type: string
+                                    name:
+                                      type: string
+                              categories:
+                                type: array
+                                items:
+                                  type: object
+                                  required:
+                                    - id
+                                    - name
+                                  properties:
+                                    id:
+                                      type: string
+                                    name:
+                                      type: string
+                              batches:
+                                type: array
+                                items:
+                                  type: object
+                                  required:
+                                    - id
+                                    - name
+                                  properties:
+                                    id:
+                                      type: string
+                                    name:
+                                      type: string
+                      relationships:
+                        type: object
+                        required:
+                          - fee-structures
+                        properties:
+                          fee-structures:
+                            type: object
+                            required:
+                              - data
+                            properties:
+                              data:
+                                type: array
+                                items:
+                                  type: object
+                                  required:
+                                    - type
+                                    - id
+                                  properties:
+                                    type:
+                                      type: string
+                                      enum:
+                                        - fee-structures
+                                    id:
+                                      type: string
+                  included:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - type
+                        - id
+                        - attributes
+                      properties:
+                        type:
+                          type: string
+                          enum:
+                            - fee-structures
+                        id:
+                          type: string
+                        attributes:
+                          type: object
+                          required:
+                            - name
+                            - courseName
+                            - categoryName
+                            - batchName
+                            - batchYears
+                            - createdAt
+                          properties:
+                            name:
+                              description: Fee structure (version) name.
+                              type: string
+                            courseName:
+                              type: string
+                            categoryName:
+                              type: string
+                            batchName:
+                              type: string
+                            batchYears:
+                              description: Batch start and end year, e.g. "2026-2027".
+                              type: string
+                            createdAt:
+                              description: ISO 8601 date-time
+                              type: string
+        "400":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - errors
+                properties:
+                  errors:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - status
+                        - code
+                        - title
+                        - detail
+                      properties:
+                        status:
+                          description: HTTP status code, as a string
+                          type: string
+                        code:
+                          description: Machine-readable domain error code
+                          type: string
+                        title:
+                          description: Short, human-readable error name
+                          type: string
+                        detail:
+                          description: Human-readable explanation specific to this error
+                          type: string
+  /searches/fee-structures:
+    get:
+      tags:
+        - searches
+      description: Returns a paginated array of fee structure search results for the
+        applied filters (no facets). Supports page[offset] and page[size].
+      parameters:
+        - schema:
+            type: string
+          in: query
+          name: filter[searchTerm]
+          required: false
+          description: Free-text, partial (case-insensitive) match against the fee
+            structure name.
+        - schema:
+            minimum: 1
+            type: integer
+          in: query
+          name: filter[courseId]
+          required: false
+          description: Exact match, single course id.
+        - schema:
+            minimum: 1
+            type: integer
+          in: query
+          name: filter[categoryId]
+          required: false
+          description: Exact match, single category id.
+        - schema:
+            minimum: 1
+            type: integer
+          in: query
+          name: filter[batchId]
+          required: false
+          description: Exact match, single batch id.
+        - schema:
+            anyOf:
+              - type: string
+                enum:
+                  - DRAFT
+              - type: string
+                enum:
+                  - ACTIVE
+              - type: string
+                enum:
+                  - SUPERSEDED
+          in: query
+          name: filter[status]
+          required: false
+          description: Version status to match. Defaults to ACTIVE when omitted.
+        - schema:
+            minimum: 0
+            default: 0
+            type: integer
+          in: query
+          name: page[offset]
+          required: false
+          description: Number of results to skip.
+        - schema:
+            minimum: 1
+            maximum: 200
+            default: 20
+            type: integer
+          in: query
+          name: page[size]
+          required: false
+          description: Maximum number of results to return.
+      responses:
+        "200":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - type
+                        - id
+                        - attributes
+                      properties:
+                        type:
+                          type: string
+                          enum:
+                            - fee-structures
+                        id:
+                          type: string
+                        attributes:
+                          type: object
+                          required:
+                            - name
+                            - courseName
+                            - categoryName
+                            - batchName
+                            - batchYears
+                            - createdAt
+                          properties:
+                            name:
+                              description: Fee structure (version) name.
+                              type: string
+                            courseName:
+                              type: string
+                            categoryName:
+                              type: string
+                            batchName:
+                              type: string
+                            batchYears:
+                              description: Batch start and end year, e.g. "2026-2027".
+                              type: string
+                            createdAt:
+                              description: ISO 8601 date-time
+                              type: string
+        "400":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - errors
+                properties:
+                  errors:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - status
+                        - code
+                        - title
+                        - detail
+                      properties:
+                        status:
+                          description: HTTP status code, as a string
+                          type: string
+                        code:
+                          description: Machine-readable domain error code
+                          type: string
+                        title:
+                          description: Short, human-readable error name
+                          type: string
+                        detail:
+                          description: Human-readable explanation specific to this error
+                          type: string

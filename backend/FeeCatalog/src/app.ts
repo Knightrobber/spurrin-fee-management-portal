@@ -4,6 +4,7 @@ import fastifySwaggerUi from '@fastify/swagger-ui';
 import { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { healthRoutes } from './routes/health/health.route';
 import { feeStructureRoutes } from './routes/fee-structures/fee-structures.route';
+import { searchRoutes } from './routes/searches/searches.route';
 import { registerErrorHandler } from './plugins/error-handler';
 
 export async function buildApp(): Promise<FastifyInstance> {
@@ -35,5 +36,6 @@ export async function buildApp(): Promise<FastifyInstance> {
 
   await app.register(healthRoutes, { prefix: '/health' });
   await app.register(feeStructureRoutes, { prefix: '/fee-structures' });
+  await app.register(searchRoutes, { prefix: '/searches' });
   return app;
 }
