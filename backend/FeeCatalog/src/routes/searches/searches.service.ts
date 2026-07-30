@@ -3,11 +3,11 @@ import {
   countFeeStructureSearchResults,
   findFeeStructureSearchResults,
   getFeeStructureSearchFacets
-} from '../../data/sql/repositories/searches/search.repository';
+} from '../../data/sql/repositories/fee-structures/fee-structure.searches.repository';
 import {
   FeeStructureSearchFilters,
   FeeStructureSearchRow
-} from '../../data/sql/repositories/searches/search.types';
+} from '../../data/sql/repositories/fee-structures/fee-structure.searches.types';
 import {
   SearchFeeStructuresQuery,
   SearchFeeStructuresResponse,

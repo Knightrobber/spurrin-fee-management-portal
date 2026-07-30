@@ -5,6 +5,9 @@ import { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { healthRoutes } from './routes/health/health.route';
 import { feeStructureRoutes } from './routes/fee-structures/fee-structures.route';
 import { searchRoutes } from './routes/searches/searches.route';
+import { categoryRoutes } from './routes/categories/categories.route';
+import { courseRoutes } from './routes/courses/courses.route';
+import { batchRoutes } from './routes/batches/batches.route';
 import { registerErrorHandler } from './plugins/error-handler';
 
 export async function buildApp(): Promise<FastifyInstance> {
@@ -34,6 +37,9 @@ export async function buildApp(): Promise<FastifyInstance> {
     routePrefix: '/documentation'
   });
 
+  await app.register(categoryRoutes, { prefix: '/categories' });
+  await app.register(courseRoutes, { prefix: '/courses' });
+  await app.register(batchRoutes, { prefix: '/batches' });
   await app.register(healthRoutes, { prefix: '/health' });
   await app.register(feeStructureRoutes, { prefix: '/fee-structures' });
   await app.register(searchRoutes, { prefix: '/searches' });

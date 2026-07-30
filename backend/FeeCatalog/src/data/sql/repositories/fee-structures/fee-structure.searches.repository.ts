@@ -1,6 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { dbClient } from "../../client";
-import { FeeStructureFacetFilters, FeeStructureSearchFilters, FeeStructureSearchRow, SearchFacets, SearchPagination } from "./search.types";
+import { FeeStructureFacetFilters, FeeStructureSearchFilters, FeeStructureSearchRow, SearchFacets, SearchPagination } from "./fee-structure.searches.types";
 
 /**
  * Builds the Prisma `where` for fee structure versions from the domain filters.

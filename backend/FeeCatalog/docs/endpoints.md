@@ -29,10 +29,22 @@ Fee structures
   - returns full fee structure detail: all terms, component breakdown, lineageId, version
 
 - POST /fee-structures/:id/versions
-  - publishes a new version when component breakdown changes
-  - courseId and batchId are immutable — reject if present in body and different from current
-  - new version linked to previous via lineageId
+  - created a new version of the existing fee strcture version when any of the fields change
+  - Payload will be similar to the db model
+  - new version is in DRAFT state. It needs to be published for it to become the active version
+  - the same schema validation rules apply to updates as creating a new fee strcture
   - 201 Created, returns new version document
+
+- GET /fee-structures/:id/versions/:versionId
+ - get the full version data for a version document
+
+- Delete /fee-structures/:id/versions/:id
+  - delete the version if the version is in InActive or DRAFT state
+
+- POST /fee-structures/:id/versions/:versionId/publish
+  - publishes/Activates a new version of the fee structure
+  - deactivates or makes the current active version inActive and activates the new version
+  - accepts a versionId and sends back the fee structure version with the updated status 
 
 Categories
 - POST /categories

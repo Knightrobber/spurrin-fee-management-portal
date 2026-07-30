@@ -1,7 +1,7 @@
 import { Prisma } from '@prisma/client';
 import { dbClient } from '../../client';
 import { FeeStructureConflictError, InvalidFeeStructureReferenceError } from './fee-structure.errors';
-import { CreateFeeStructureData } from './fee-structure.types';
+import { CreateFeeStructureData, CreateFeeStructureVersionData } from './fee-structure.types';
 
 export type FeeStructureDetail = Prisma.FeeStructureGetPayload<{
   include: {
@@ -11,6 +11,13 @@ export type FeeStructureDetail = Prisma.FeeStructureGetPayload<{
         oneTimeCosts: true;
       };
     };
+  };
+}>;
+
+export type FeeStructureVersionDetail = Prisma.FeeStructureVersionGetPayload<{
+  include: {
+    terms: { include: { components: true } };
+    oneTimeCosts: true;
   };
 }>;
 
@@ -98,6 +105,96 @@ export async function findFeeStructureById(id: bigint): Promise<FeeStructureDeta
       }
     }
   });
+}
+
+/** Builds the nested Prisma create input for a single version under an existing fee structure. */
+function toPrismaVersionCreateInput(
+  feeStructureId: bigint,
+  version: CreateFeeStructureVersionData
+): Prisma.FeeStructureVersionUncheckedCreateInput {
+  return {
+    feeStructureId,
+    name: version.name,
+    status: version.status,
+    lateFeePerDay: version.lateFeePerDay,
+    paymentWindowOffsetDays: version.paymentWindowOffsetDays,
+    dueDateOffsetDays: version.dueDateOffsetDays,
+    createdBy: version.createdBy,
+    terms: {
+      create: version.terms.map((term) => ({
+        startDate: term.startDate,
+        endDate: term.endDate,
+        dueDate: term.dueDate,
+        paymentWindowOpenDate: term.paymentWindowOpenDate,
+        components: { create: term.components }
+      }))
+    },
+    oneTimeCosts: { create: version.oneTimeCosts }
+  };
+}
+
+/**
+ * Creates a new version (with its terms, term components, and one-time costs) under an
+ * existing fee structure lineage in a single nested Prisma write.
+ */
+export async function createFeeStructureVersion(
+  feeStructureId: bigint,
+  version: CreateFeeStructureVersionData
+): Promise<FeeStructureVersionDetail> {
+  try {
+    return await dbClient.feeStructureVersion.create({
+      data: toPrismaVersionCreateInput(feeStructureId, version),
+      include: {
+        terms: { include: { components: true }, orderBy: { startDate: 'asc' } },
+        oneTimeCosts: true
+      }
+    });
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2003') {
+      throw new InvalidFeeStructureReferenceError();
+    }
+    throw error;
+  }
+}
+
+/**
+ * Deletes a fee structure version together with its terms, term components, and one-time
+ * costs. The foreign keys are ON DELETE RESTRICT, so children are removed first inside a
+ * single transaction before the version itself.
+ */
+export async function deleteFeeStructureVersionById(versionId: bigint): Promise<void> {
+  await dbClient.$transaction([
+    dbClient.termComponent.deleteMany({ where: { term: { feeStructureVersionId: versionId } } }),
+    dbClient.term.deleteMany({ where: { feeStructureVersionId: versionId } }),
+    dbClient.oneTimeCost.deleteMany({ where: { feeStructureVersionId: versionId } }),
+    dbClient.feeStructureVersion.delete({ where: { id: versionId } })
+  ]);
+}
+
+/**
+ * Publishes a version: supersedes the currently ACTIVE version(s) of the lineage and marks the
+ * target version ACTIVE, in a single transaction. Returns the newly activated version detail.
+ */
+export async function publishFeeStructureVersion(
+  feeStructureId: bigint,
+  versionId: bigint
+): Promise<FeeStructureVersionDetail> {
+  const [, activated] = await dbClient.$transaction([
+    dbClient.feeStructureVersion.updateMany({
+      where: { feeStructureId, status: 'ACTIVE', id: { not: versionId } },
+      data: { status: 'SUPERSEDED' }
+    }),
+    dbClient.feeStructureVersion.update({
+      where: { id: versionId },
+      data: { status: 'ACTIVE' },
+      include: {
+        terms: { include: { components: true }, orderBy: { startDate: 'asc' } },
+        oneTimeCosts: true
+      }
+    })
+  ]);
+
+  return activated;
 }
 
 

@@ -7,6 +7,712 @@ info:
 components:
   schemas: {}
 paths:
+  /categories/:
+    post:
+      tags:
+        - categories
+      description: Creates a new category (quota / seat type).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  minLength: 1
+                  type: string
+      responses:
+        "201":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    type: object
+                    required:
+                      - type
+                      - id
+                      - attributes
+                    properties:
+                      type:
+                        type: string
+                        enum:
+                          - categories
+                      id:
+                        type: string
+                      attributes:
+                        type: object
+                        required:
+                          - name
+                        properties:
+                          name:
+                            type: string
+        "400":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - errors
+                properties:
+                  errors:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - status
+                        - code
+                        - title
+                        - detail
+                      properties:
+                        status:
+                          description: HTTP status code, as a string
+                          type: string
+                        code:
+                          description: Machine-readable domain error code
+                          type: string
+                        title:
+                          description: Short, human-readable error name
+                          type: string
+                        detail:
+                          description: Human-readable explanation specific to this error
+                          type: string
+    get:
+      tags:
+        - categories
+      description: Returns every category, ordered by name.
+      responses:
+        "200":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - type
+                        - id
+                        - attributes
+                      properties:
+                        type:
+                          type: string
+                          enum:
+                            - categories
+                        id:
+                          type: string
+                        attributes:
+                          type: object
+                          required:
+                            - name
+                          properties:
+                            name:
+                              type: string
+  /categories/{id}:
+    get:
+      tags:
+        - categories
+      description: Returns a single category by id.
+      parameters:
+        - schema:
+            pattern: ^[1-9][0-9]*$
+            type: string
+          in: path
+          name: id
+          required: true
+          description: Category id
+      responses:
+        "200":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    type: object
+                    required:
+                      - type
+                      - id
+                      - attributes
+                    properties:
+                      type:
+                        type: string
+                        enum:
+                          - categories
+                      id:
+                        type: string
+                      attributes:
+                        type: object
+                        required:
+                          - name
+                        properties:
+                          name:
+                            type: string
+        "400":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - errors
+                properties:
+                  errors:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - status
+                        - code
+                        - title
+                        - detail
+                      properties:
+                        status:
+                          description: HTTP status code, as a string
+                          type: string
+                        code:
+                          description: Machine-readable domain error code
+                          type: string
+                        title:
+                          description: Short, human-readable error name
+                          type: string
+                        detail:
+                          description: Human-readable explanation specific to this error
+                          type: string
+        "404":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - errors
+                properties:
+                  errors:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - status
+                        - code
+                        - title
+                        - detail
+                      properties:
+                        status:
+                          description: HTTP status code, as a string
+                          type: string
+                        code:
+                          description: Machine-readable domain error code
+                          type: string
+                        title:
+                          description: Short, human-readable error name
+                          type: string
+                        detail:
+                          description: Human-readable explanation specific to this error
+                          type: string
+  /courses/:
+    post:
+      tags:
+        - courses
+      description: Creates a new course (academic program).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - durationYears
+              properties:
+                name:
+                  minLength: 1
+                  type: string
+                durationYears:
+                  exclusiveMinimum: 0
+                  description: Program duration in years.
+                  type: number
+      responses:
+        "201":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    type: object
+                    required:
+                      - type
+                      - id
+                      - attributes
+                    properties:
+                      type:
+                        type: string
+                        enum:
+                          - courses
+                      id:
+                        type: string
+                      attributes:
+                        type: object
+                        required:
+                          - name
+                          - durationYears
+                        properties:
+                          name:
+                            type: string
+                          durationYears:
+                            type: number
+        "400":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - errors
+                properties:
+                  errors:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - status
+                        - code
+                        - title
+                        - detail
+                      properties:
+                        status:
+                          description: HTTP status code, as a string
+                          type: string
+                        code:
+                          description: Machine-readable domain error code
+                          type: string
+                        title:
+                          description: Short, human-readable error name
+                          type: string
+                        detail:
+                          description: Human-readable explanation specific to this error
+                          type: string
+    get:
+      tags:
+        - courses
+      description: Returns every course, ordered by name.
+      responses:
+        "200":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - type
+                        - id
+                        - attributes
+                      properties:
+                        type:
+                          type: string
+                          enum:
+                            - courses
+                        id:
+                          type: string
+                        attributes:
+                          type: object
+                          required:
+                            - name
+                            - durationYears
+                          properties:
+                            name:
+                              type: string
+                            durationYears:
+                              type: number
+  /courses/{id}:
+    get:
+      tags:
+        - courses
+      description: Returns a single course by id.
+      parameters:
+        - schema:
+            pattern: ^[1-9][0-9]*$
+            type: string
+          in: path
+          name: id
+          required: true
+          description: Course id
+      responses:
+        "200":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    type: object
+                    required:
+                      - type
+                      - id
+                      - attributes
+                    properties:
+                      type:
+                        type: string
+                        enum:
+                          - courses
+                      id:
+                        type: string
+                      attributes:
+                        type: object
+                        required:
+                          - name
+                          - durationYears
+                        properties:
+                          name:
+                            type: string
+                          durationYears:
+                            type: number
+        "400":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - errors
+                properties:
+                  errors:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - status
+                        - code
+                        - title
+                        - detail
+                      properties:
+                        status:
+                          description: HTTP status code, as a string
+                          type: string
+                        code:
+                          description: Machine-readable domain error code
+                          type: string
+                        title:
+                          description: Short, human-readable error name
+                          type: string
+                        detail:
+                          description: Human-readable explanation specific to this error
+                          type: string
+        "404":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - errors
+                properties:
+                  errors:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - status
+                        - code
+                        - title
+                        - detail
+                      properties:
+                        status:
+                          description: HTTP status code, as a string
+                          type: string
+                        code:
+                          description: Machine-readable domain error code
+                          type: string
+                        title:
+                          description: Short, human-readable error name
+                          type: string
+                        detail:
+                          description: Human-readable explanation specific to this error
+                          type: string
+  /batches/:
+    post:
+      tags:
+        - batches
+      description: Creates a new batch (intake cohort for a course in an admission year).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - startDate
+                - endDate
+              properties:
+                name:
+                  minLength: 1
+                  type: string
+                startDate:
+                  format: date
+                  description: ISO 8601 date (YYYY-MM-DD)
+                  type: string
+                endDate:
+                  format: date
+                  description: ISO 8601 date (YYYY-MM-DD)
+                  type: string
+      responses:
+        "201":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    type: object
+                    required:
+                      - type
+                      - id
+                      - attributes
+                    properties:
+                      type:
+                        type: string
+                        enum:
+                          - batches
+                      id:
+                        type: string
+                      attributes:
+                        type: object
+                        required:
+                          - name
+                          - startDate
+                          - endDate
+                        properties:
+                          name:
+                            type: string
+                          startDate:
+                            description: ISO 8601 date (YYYY-MM-DD)
+                            type: string
+                          endDate:
+                            description: ISO 8601 date (YYYY-MM-DD)
+                            type: string
+        "400":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - errors
+                properties:
+                  errors:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - status
+                        - code
+                        - title
+                        - detail
+                      properties:
+                        status:
+                          description: HTTP status code, as a string
+                          type: string
+                        code:
+                          description: Machine-readable domain error code
+                          type: string
+                        title:
+                          description: Short, human-readable error name
+                          type: string
+                        detail:
+                          description: Human-readable explanation specific to this error
+                          type: string
+    get:
+      tags:
+        - batches
+      description: Returns every batch, ordered by start date descending (newest
+        intake first).
+      responses:
+        "200":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - type
+                        - id
+                        - attributes
+                      properties:
+                        type:
+                          type: string
+                          enum:
+                            - batches
+                        id:
+                          type: string
+                        attributes:
+                          type: object
+                          required:
+                            - name
+                            - startDate
+                            - endDate
+                          properties:
+                            name:
+                              type: string
+                            startDate:
+                              description: ISO 8601 date (YYYY-MM-DD)
+                              type: string
+                            endDate:
+                              description: ISO 8601 date (YYYY-MM-DD)
+                              type: string
+  /batches/{id}:
+    get:
+      tags:
+        - batches
+      description: Returns a single batch by id.
+      parameters:
+        - schema:
+            pattern: ^[1-9][0-9]*$
+            type: string
+          in: path
+          name: id
+          required: true
+          description: Batch id
+      responses:
+        "200":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    type: object
+                    required:
+                      - type
+                      - id
+                      - attributes
+                    properties:
+                      type:
+                        type: string
+                        enum:
+                          - batches
+                      id:
+                        type: string
+                      attributes:
+                        type: object
+                        required:
+                          - name
+                          - startDate
+                          - endDate
+                        properties:
+                          name:
+                            type: string
+                          startDate:
+                            description: ISO 8601 date (YYYY-MM-DD)
+                            type: string
+                          endDate:
+                            description: ISO 8601 date (YYYY-MM-DD)
+                            type: string
+        "400":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - errors
+                properties:
+                  errors:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - status
+                        - code
+                        - title
+                        - detail
+                      properties:
+                        status:
+                          description: HTTP status code, as a string
+                          type: string
+                        code:
+                          description: Machine-readable domain error code
+                          type: string
+                        title:
+                          description: Short, human-readable error name
+                          type: string
+                        detail:
+                          description: Human-readable explanation specific to this error
+                          type: string
+        "404":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - errors
+                properties:
+                  errors:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - status
+                        - code
+                        - title
+                        - detail
+                      properties:
+                        status:
+                          description: HTTP status code, as a string
+                          type: string
+                        code:
+                          description: Machine-readable domain error code
+                          type: string
+                        title:
+                          description: Short, human-readable error name
+                          type: string
+                        detail:
+                          description: Human-readable explanation specific to this error
+                          type: string
   /health/:
     get:
       tags:
