@@ -15,6 +15,8 @@ import { StudentDetail } from "./components/admin/StudentDetail";
 import { EnrollStudent } from "./components/admin/EnrollStudent";
 import { OutstandingDues } from "./components/admin/OutstandingDues";
 import { FeeStructures } from "./components/finance/FeeStructures";
+import { FeeStructureDetail } from "./components/finance/feeStructures/FeeStructureDetail";
+import { StructureFormPage } from "./components/finance/feeStructures/StructureFormPage";
 import { AddOnsPage } from "./components/finance/AddOnsPage";
 import { RequestsPage } from "./components/finance/RequestsPage";
 import { RecordPayment } from "./components/finance/RecordPayment";
@@ -51,33 +53,44 @@ const DEFAULT_PAGE: Record<Role, string> = {
   approver: "approvals",
 };
 
+type FeeStructureRoute =
+  | { screen: "list" }
+  | { screen: "detail"; lineageId: string }
+  | { screen: "create" }
+  | { screen: "edit"; lineageId: string };
+
 export default function App() {
   const [authed, setAuthed] = useState(false);
   const [role, setRole] = useState<Role>("student");
   const [page, setPage] = useState<string>(DEFAULT_PAGE.student);
   const [openStudentId, setOpenStudentId] = useState<string | null>(null);
+  const [feeStructureRoute, setFeeStructureRoute] = useState<FeeStructureRoute>({ screen: "list" });
 
   const onLogin = (r: Role) => {
     setRole(r);
     setPage(DEFAULT_PAGE[r]);
     setOpenStudentId(null);
+    setFeeStructureRoute({ screen: "list" });
     setAuthed(true);
   };
 
   const onLogout = () => {
     setAuthed(false);
     setOpenStudentId(null);
+    setFeeStructureRoute({ screen: "list" });
   };
 
   const onRoleChange = (r: Role) => {
     setRole(r);
     setPage(DEFAULT_PAGE[r]);
     setOpenStudentId(null);
+    setFeeStructureRoute({ screen: "list" });
   };
 
   const onNav = (id: string) => {
     setPage(id);
     setOpenStudentId(null);
+    setFeeStructureRoute({ screen: "list" });
   };
 
   const renderPage = () => {
@@ -92,7 +105,44 @@ export default function App() {
       return <OutstandingDues />;
     }
     if (role === "finance") {
-      if (page === "structures") return <FeeStructures />;
+      if (page === "structures") {
+        if (feeStructureRoute.screen === "detail") {
+          const { lineageId } = feeStructureRoute;
+          return (
+            <FeeStructureDetail
+              lineageId={lineageId}
+              onBack={() => setFeeStructureRoute({ screen: "list" })}
+              onEdit={() => setFeeStructureRoute({ screen: "edit", lineageId })}
+            />
+          );
+        }
+        if (feeStructureRoute.screen === "create") {
+          return (
+            <StructureFormPage
+              mode="create"
+              onCancel={() => setFeeStructureRoute({ screen: "list" })}
+              onSaved={(lineageId) => setFeeStructureRoute({ screen: "detail", lineageId })}
+            />
+          );
+        }
+        if (feeStructureRoute.screen === "edit") {
+          const { lineageId } = feeStructureRoute;
+          return (
+            <StructureFormPage
+              mode="edit"
+              lineageId={lineageId}
+              onCancel={() => setFeeStructureRoute({ screen: "detail", lineageId })}
+              onSaved={() => setFeeStructureRoute({ screen: "detail", lineageId })}
+            />
+          );
+        }
+        return (
+          <FeeStructures
+            onOpen={(lineageId) => setFeeStructureRoute({ screen: "detail", lineageId })}
+            onCreate={() => setFeeStructureRoute({ screen: "create" })}
+          />
+        );
+      }
       if (page === "addons") return <AddOnsPage />;
       if (page === "requests") return <RequestsPage />;
       if (page === "record") return <RecordPayment />;
