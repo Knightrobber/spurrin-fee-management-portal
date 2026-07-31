@@ -3,13 +3,13 @@ import {
   findAllCategories,
   findCategoryById
 } from '../../data/sql/repositories/categories/category.repository';
-import { Category } from '../../data/sql/types/models.types';
 import {
   CategoryListResponse,
   CategoryResource,
   CreateCategoryBody
 } from './categories.schema';
 import { CategoryNotFoundError } from './categories.errors';
+import { toCategoryResource, toCategoryResourceData } from './categories.transformer';
 
 export async function createCategory(body: CreateCategoryBody): Promise<CategoryResource> {
   const created = await createCategoryRecord({ name: body.name });
@@ -29,16 +29,4 @@ export async function getCategoryById(id: string): Promise<CategoryResource> {
   }
 
   return toCategoryResource(category);
-}
-
-function toCategoryResourceData(category: Category): CategoryResource['data'] {
-  return {
-    type: 'categories',
-    id: category.id.toString(),
-    attributes: { name: category.name }
-  };
-}
-
-function toCategoryResource(category: Category): CategoryResource {
-  return { data: toCategoryResourceData(category) };
 }

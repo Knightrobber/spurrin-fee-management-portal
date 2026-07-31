@@ -107,6 +107,45 @@ export async function findFeeStructureById(id: bigint): Promise<FeeStructureDeta
   });
 }
 
+/** Lightweight existence check for a fee structure (lineage) — does not load any versions. */
+export async function feeStructureExists(id: bigint): Promise<boolean> {
+  const feeStructure = await dbClient.feeStructure.findUnique({
+    where: { id },
+    select: { id: true }
+  });
+
+  return feeStructure !== null;
+}
+
+/**
+ * Fetches a single version (with its terms, term components, and one-time costs) by its unique id.
+ * Returns `null` when no version with that id exists.
+ */
+export async function findFeeStructureVersion(
+  versionId: bigint
+): Promise<FeeStructureVersionDetail | null> {
+  return dbClient.feeStructureVersion.findUnique({
+    where: { id: versionId },
+    include: {
+      terms: { include: { components: true }, orderBy: { startDate: 'asc' } },
+      oneTimeCosts: true
+    }
+  });
+}
+
+/** Fetches the currently ACTIVE version of a fee structure lineage, or `null` when there isn't one. */
+export async function findActiveFeeStructureVersion(
+  feeStructureId: bigint
+): Promise<FeeStructureVersionDetail | null> {
+  return dbClient.feeStructureVersion.findFirst({
+    where: { feeStructureId, status: 'ACTIVE' },
+    include: {
+      terms: { include: { components: true }, orderBy: { startDate: 'asc' } },
+      oneTimeCosts: true
+    }
+  });
+}
+
 /** Builds the nested Prisma create input for a single version under an existing fee structure. */
 function toPrismaVersionCreateInput(
   feeStructureId: bigint,
@@ -172,8 +211,10 @@ export async function deleteFeeStructureVersionById(versionId: bigint): Promise<
 }
 
 /**
- * Publishes a version: supersedes the currently ACTIVE version(s) of the lineage and marks the
- * target version ACTIVE, in a single transaction. Returns the newly activated version detail.
+ * Publishes a version: supersedes the currently ACTIVE version(s) of its lineage and marks the
+ * target version ACTIVE, in a single transaction. Callers must have already verified that
+ * `versionId` belongs to `feeStructureId` (e.g. via `findFeeStructureVersion`) — this function
+ * trusts that pairing and does not re-check it. Returns the newly activated version detail.
  */
 export async function publishFeeStructureVersion(
   feeStructureId: bigint,

@@ -4,22 +4,18 @@ import {
   findFeeStructureSearchResults,
   getFeeStructureSearchFacets
 } from '../../data/sql/repositories/fee-structures/fee-structure.searches.repository';
-import {
-  FeeStructureSearchFilters,
-  FeeStructureSearchRow
-} from '../../data/sql/repositories/fee-structures/fee-structure.searches.types';
+import { FeeStructureSearchFilters } from '../../data/sql/repositories/fee-structures/fee-structure.searches.types';
 import {
   SearchFeeStructuresQuery,
   SearchFeeStructuresResponse,
   SearchPageQuery,
   SearchPageResponse
 } from './searches.schema';
+import { toSearchFeeStructuresResponse, toSearchPageResponse } from './searches.transformer';
 
 const DEFAULT_STATUS: VersionStatus = 'ACTIVE';
 const DEFAULT_PAGE_SIZE = 20;
 const DEFAULT_PAGE_OFFSET = 0;
-
-type SearchResultAttributes = SearchFeeStructuresResponse['data'][number]['attributes'];
 
 /**
  * Faceted search: computes the available filter options (facets) and total match
@@ -36,24 +32,7 @@ export async function searchFeeStructurePage(query: SearchPageQuery): Promise<Se
     findFeeStructureSearchResults(filters, { offset: DEFAULT_PAGE_OFFSET, limit: size })
   ]);
 
-  const included = rows.map((row) => ({
-    type: 'fee-structures' as const,
-    id: row.feeStructureId.toString(),
-    attributes: toAttributes(row)
-  }));
-
-  return {
-    data: {
-      type: 'fee-structure-searches',
-      attributes: { totalCount, facets },
-      relationships: {
-        'fee-structures': {
-          data: included.map((resource) => ({ type: 'fee-structures' as const, id: resource.id }))
-        }
-      }
-    },
-    included
-  };
+  return toSearchPageResponse(rows, facets, totalCount);
 }
 
 /** Paginated (offset/size) search that returns just the matching results. */
@@ -66,13 +45,7 @@ export async function searchFeeStructures(
 
   const rows = await findFeeStructureSearchResults(filters, { offset, limit: size });
 
-  return {
-    data: rows.map((row) => ({
-      type: 'fee-structures' as const,
-      id: row.feeStructureId.toString(),
-      attributes: toAttributes(row)
-    }))
-  };
+  return toSearchFeeStructuresResponse(rows);
 }
 
 function toFilters(query: SearchPageQuery | SearchFeeStructuresQuery): FeeStructureSearchFilters {
@@ -86,18 +59,5 @@ function toFilters(query: SearchPageQuery | SearchFeeStructuresQuery): FeeStruct
     categoryId: categoryId !== undefined ? BigInt(categoryId) : undefined,
     batchId: batchId !== undefined ? BigInt(batchId) : undefined,
     status: query['filter[status]'] ?? DEFAULT_STATUS
-  };
-}
-
-function toAttributes(row: FeeStructureSearchRow): SearchResultAttributes {
-  const { batch, course, category } = row.feeStructure;
-
-  return {
-    name: row.name,
-    courseName: course.name,
-    categoryName: category.name,
-    batchName: batch.name,
-    batchYears: `${batch.startDate.getUTCFullYear()}-${batch.endDate.getUTCFullYear()}`,
-    createdAt: row.createdAt.toISOString()
   };
 }

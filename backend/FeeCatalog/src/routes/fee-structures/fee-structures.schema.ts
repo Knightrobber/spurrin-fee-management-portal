@@ -102,7 +102,6 @@ export type CreateFeeStructureResponse = FeeStructureResource;
 const feeStructureVersionAttributesSchema = Type.Object({
   lineageId: Type.String({ description: 'Stable id of the fee structure this version belongs to' }),
   versionId: Type.String({ description: 'id of this specific version' }),
-  version: Type.Integer({ description: 'Sequential version number within the lineage' }),
   name: Type.String(),
   status: versionStatusSchema,
   lateFeePerDay: Type.Integer(),
@@ -168,7 +167,7 @@ export const createFeeStructureVersionBodySchema = Type.Omit(createFeeStructureB
 
 export type CreateFeeStructureVersionBody = Static<typeof createFeeStructureVersionBodySchema>;
 
-export type CreateFeeStructureVersionResponse = FeeStructureResource;
+export type CreateFeeStructureVersionResponse = FeeStructureVersionResource;
 
 export const CreateFeeStructureVersionSchema = {
   description:
@@ -177,7 +176,7 @@ export const CreateFeeStructureVersionSchema = {
   params: getFeeStructureParamsSchema,
   body: createFeeStructureVersionBodySchema,
   response: {
-    201: feeStructureResourceSchema,
+    201: feeStructureVersionResourceSchema,
     400: errorResponseSchema,
     404: errorResponseSchema,
     409: errorResponseSchema
@@ -191,7 +190,7 @@ export const feeStructureVersionParamsSchema = Type.Object({
 
 export type FeeStructureVersionParams = Static<typeof feeStructureVersionParamsSchema>;
 
-export type GetFeeStructureVersionResponse = FeeStructureResource;
+export type GetFeeStructureVersionResponse = FeeStructureVersionResource;
 
 export const GetFeeStructureVersionSchema = {
   description:
@@ -199,7 +198,7 @@ export const GetFeeStructureVersionSchema = {
   tags: ['fee-structures'],
   params: feeStructureVersionParamsSchema,
   response: {
-    200: feeStructureResourceSchema,
+    200: feeStructureVersionResourceSchema,
     400: errorResponseSchema,
     404: errorResponseSchema
   }

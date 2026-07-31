@@ -3,9 +3,9 @@ import {
   findAllBatches,
   findBatchById
 } from '../../data/sql/repositories/batches/batch.repository';
-import { Batch } from '../../data/sql/types/models.types';
 import { BatchListResponse, BatchResource, CreateBatchBody } from './batches.schema';
 import { BatchNotFoundError, InvalidBatchDatesError } from './batches.errors';
+import { toBatchResource, toBatchResourceData } from './batches.transformer';
 
 export async function createBatch(body: CreateBatchBody): Promise<BatchResource> {
   const startDate = new Date(body.startDate);
@@ -32,24 +32,4 @@ export async function getBatchById(id: string): Promise<BatchResource> {
   }
 
   return toBatchResource(batch);
-}
-
-function toIsoDate(date: Date): string {
-  return date.toISOString().slice(0, 10);
-}
-
-function toBatchResourceData(batch: Batch): BatchResource['data'] {
-  return {
-    type: 'batches',
-    id: batch.id.toString(),
-    attributes: {
-      name: batch.name,
-      startDate: toIsoDate(batch.startDate),
-      endDate: toIsoDate(batch.endDate)
-    }
-  };
-}
-
-function toBatchResource(batch: Batch): BatchResource {
-  return { data: toBatchResourceData(batch) };
 }

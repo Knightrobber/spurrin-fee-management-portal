@@ -66,4 +66,3 @@ Addons
 - POST/addons/:id/versions
 - GET /addons?filter[name]&filter[isRecurring]
 - GET /addons/:id
-- 

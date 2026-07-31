@@ -35,5 +35,5 @@ The `health` domain (`src/routes/health/`) follows this convention and can be us
 - `health.handler.ts` — returns a static status payload; no business logic yet.
 - `health.schema.ts` — exports `HealthResponseSchema`, the full Fastify route schema (description, tags, response) built with TypeBox.
 - `health.handler.test.ts` — jest test that injects a request into the built app and asserts the response shape.
-
+- `health.transformer.ts` — has the methods that transform the data from the db to the response schema
 Note: the Swagger/OpenAPI documentation is generated dynamically from these route schemas (see `src/app.ts`). Do not hand-edit `openapi/spec.yaml` — it is produced by running `npm run spec:generate`.
