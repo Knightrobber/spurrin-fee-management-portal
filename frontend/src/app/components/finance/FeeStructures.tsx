@@ -1,24 +1,26 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import { ArrowUpRight, Layers, Plus, Search } from "lucide-react";
+import { toast } from "sonner";
 import { Card, CardContent, CardHeader } from "../ui/card";
 import { Button } from "../ui/button";
-import { Badge } from "../ui/badge";
 import { Input } from "../ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table";
 import {
-  listBatches,
-  listCategories,
-  listCourses,
-  listFeeStructures,
-  type FeeStructureListItem,
-} from "../../lib/feeCatalogStore";
+  searchFeeStructuresPage,
+  type FeeStructureFacets,
+  type FeeStructureSearchItem,
+} from "../../lib/api/feeCatalogApi";
 import { VersionStatusBadge } from "./feeStructures/shared";
 
-function batchYear(iso: string): string {
-  return iso.slice(0, 4);
+/** "2026-2027" -> ["2026", "2027"] */
+function splitBatchYears(batchYears: string): [string, string] {
+  const [start, end] = batchYears.split("-");
+  return [start ?? "—", end ?? "—"];
 }
+
+const EMPTY_FACETS: FeeStructureFacets = { courses: [], categories: [], batches: [] };
 
 export function FeeStructures({
   onOpen,
@@ -27,24 +29,41 @@ export function FeeStructures({
   onOpen: (lineageId: string) => void;
   onCreate: () => void;
 }) {
-  const items: FeeStructureListItem[] = listFeeStructures();
-  const courses = listCourses();
-  const categories = listCategories();
-  const batches = listBatches();
+  const [items, setItems] = useState<FeeStructureSearchItem[]>([]);
+  const [facets, setFacets] = useState<FeeStructureFacets>(EMPTY_FACETS);
+  const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
   const [courseFilter, setCourseFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [batchFilter, setBatchFilter] = useState("all");
 
-  const ql = q.trim().toLowerCase();
-  const filtered = items.filter((item) => {
-    if (courseFilter !== "all" && item.courseId !== courseFilter) return false;
-    if (categoryFilter !== "all" && item.categoryId !== categoryFilter) return false;
-    if (batchFilter !== "all" && item.batchId !== batchFilter) return false;
-    if (!ql) return true;
-    const haystack = `${item.active.name} ${item.courseName} ${item.categoryName} ${item.batchName}`.toLowerCase();
-    return haystack.includes(ql);
-  });
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    const handle = setTimeout(() => {
+      searchFeeStructuresPage({
+        searchTerm: q,
+        courseId: courseFilter === "all" ? undefined : courseFilter,
+        categoryId: categoryFilter === "all" ? undefined : categoryFilter,
+        batchId: batchFilter === "all" ? undefined : batchFilter,
+      })
+        .then((result) => {
+          if (cancelled) return;
+          setItems(result.items);
+          setFacets(result.facets);
+        })
+        .catch((err) => {
+          if (!cancelled) toast.error(err instanceof Error ? err.message : "Could not load fee structures");
+        })
+        .finally(() => {
+          if (!cancelled) setLoading(false);
+        });
+    }, 250);
+    return () => {
+      cancelled = true;
+      clearTimeout(handle);
+    };
+  }, [q, courseFilter, categoryFilter, batchFilter]);
 
   return (
     <div className="max-w-6xl space-y-6">
@@ -68,7 +87,7 @@ export function FeeStructures({
               <Input
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
-                placeholder="Search by name, course, category or batch…"
+                placeholder="Search by fee structure name…"
                 className="pl-9"
               />
             </div>
@@ -78,7 +97,7 @@ export function FeeStructures({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All courses</SelectItem>
-                {courses.map((c) => (
+                {facets.courses.map((c) => (
                   <SelectItem key={c.id} value={c.id}>
                     {c.name}
                   </SelectItem>
@@ -91,7 +110,7 @@ export function FeeStructures({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All categories</SelectItem>
-                {categories.map((c) => (
+                {facets.categories.map((c) => (
                   <SelectItem key={c.id} value={c.id}>
                     {c.name}
                   </SelectItem>
@@ -104,7 +123,7 @@ export function FeeStructures({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All batches</SelectItem>
-                {batches.map((b) => (
+                {facets.batches.map((b) => (
                   <SelectItem key={b.id} value={b.id}>
                     {b.name}
                   </SelectItem>
@@ -114,7 +133,11 @@ export function FeeStructures({
           </div>
         </CardHeader>
         <CardContent>
-          {filtered.length === 0 ? (
+          {loading ? (
+            <div className="rounded-lg border border-dashed p-12 text-center text-sm text-muted-foreground">
+              Loading fee structures…
+            </div>
+          ) : items.length === 0 ? (
             <div className="rounded-lg border border-dashed p-12 text-center text-sm text-muted-foreground">
               No fee structures match your search.
             </div>
@@ -133,8 +156,8 @@ export function FeeStructures({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map((item, i) => {
-                  const batch = batches.find((b) => b.id === item.batchId);
+                {items.map((item, i) => {
+                  const [startYear, endYear] = splitBatchYears(item.batchYears);
                   return (
                     <motion.tr
                       key={item.lineageId}
@@ -149,23 +172,16 @@ export function FeeStructures({
                           <div className="w-8 h-8 rounded-md bg-secondary text-primary flex items-center justify-center shrink-0">
                             <Layers className="w-4 h-4" />
                           </div>
-                          <span className="text-sm">{item.active.name}</span>
+                          <span className="text-sm">{item.name}</span>
                         </div>
                       </TableCell>
                       <TableCell className="text-sm">{item.courseName}</TableCell>
                       <TableCell className="text-sm">{item.categoryName}</TableCell>
                       <TableCell className="text-sm text-muted-foreground">{item.batchName}</TableCell>
-                      <TableCell className="text-sm">{batch ? batchYear(batch.startDate) : "—"}</TableCell>
-                      <TableCell className="text-sm">{batch ? batchYear(batch.endDate) : "—"}</TableCell>
+                      <TableCell className="text-sm">{startYear}</TableCell>
+                      <TableCell className="text-sm">{endYear}</TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-1">
-                          <VersionStatusBadge status="ACTIVE" />
-                          {item.draft && (
-                            <Badge variant="outline" className="text-amber-700 border-amber-200 bg-amber-50">
-                              Draft pending
-                            </Badge>
-                          )}
-                        </div>
+                        <VersionStatusBadge status="ACTIVE" />
                       </TableCell>
                       <TableCell>
                         <ArrowUpRight className="w-4 h-4 text-muted-foreground" />

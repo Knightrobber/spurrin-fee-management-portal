@@ -1,20 +1,47 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Copy, Search } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "../../ui/popover";
-import { getLineage, listFeeStructures, type FeeStructureLineage } from "../../../lib/feeCatalogStore";
+import { getLineage, listFeeStructures, type FeeStructureLineage, type FeeStructureSearchItem } from "../../../lib/api/feeCatalogApi";
 
 /** A small hovering search popover — pick an existing fee structure to clone its fields from. */
 export function ClonePopover({ onClone }: { onClone: (source: FeeStructureLineage) => void }) {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
+  const [items, setItems] = useState<FeeStructureSearchItem[]>([]);
+  const [cloning, setCloning] = useState<string | null>(null);
 
-  const ql = q.trim().toLowerCase();
-  const items = listFeeStructures().filter((item) => {
-    if (!ql) return true;
-    return `${item.active.name} ${item.courseName} ${item.categoryName} ${item.batchName}`.toLowerCase().includes(ql);
-  });
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    const handle = setTimeout(() => {
+      listFeeStructures({ searchTerm: q })
+        .then((rows) => {
+          if (!cancelled) setItems(rows);
+        })
+        .catch((err) => toast.error(err instanceof Error ? err.message : "Could not load fee structures"));
+    }, 200);
+    return () => {
+      cancelled = true;
+      clearTimeout(handle);
+    };
+  }, [open, q]);
+
+  const selectItem = async (item: FeeStructureSearchItem) => {
+    setCloning(item.lineageId);
+    try {
+      const lineage = await getLineage(item.lineageId);
+      if (lineage) onClone(lineage);
+      setOpen(false);
+      setQ("");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not load fee structure to clone");
+    } finally {
+      setCloning(null);
+    }
+  };
 
   return (
     <Popover
@@ -48,15 +75,11 @@ export function ClonePopover({ onClone }: { onClone: (source: FeeStructureLineag
             <button
               key={item.lineageId}
               type="button"
-              className="w-full text-left px-3 py-2 rounded-md hover:bg-muted/60 transition-colors"
-              onClick={() => {
-                const lineage = getLineage(item.lineageId);
-                if (lineage) onClone(lineage);
-                setOpen(false);
-                setQ("");
-              }}
+              disabled={cloning !== null}
+              className="w-full text-left px-3 py-2 rounded-md hover:bg-muted/60 transition-colors disabled:opacity-50"
+              onClick={() => selectItem(item)}
             >
-              <div className="text-sm">{item.active.name}</div>
+              <div className="text-sm">{cloning === item.lineageId ? "Loading…" : item.name}</div>
               <div className="text-xs text-muted-foreground">
                 {item.courseName} · {item.categoryName} · {item.batchName}
               </div>

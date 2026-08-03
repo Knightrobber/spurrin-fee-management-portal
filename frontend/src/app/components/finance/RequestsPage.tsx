@@ -1,6 +1,6 @@
 import { motion } from "motion/react";
 import { useState } from "react";
-import { Plus, Clock, Check, X } from "lucide-react";
+import { Plus, Clock, Check, X, Search } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
@@ -13,6 +13,14 @@ import { approvals, approvalHistory, inr } from "../../lib/mock";
 import { toast } from "sonner";
 
 export function RequestsPage() {
+  const [q, setQ] = useState("");
+  const ql = q.trim().toLowerCase();
+  const matches = (fields: (string | undefined)[]) =>
+    !ql || fields.some((f) => f?.toLowerCase().includes(ql));
+
+  const filteredApprovals = approvals.filter((a) => matches([a.student, a.studentId, a.type, a.note]));
+  const filteredHistory = approvalHistory.filter((h) => matches([h.student, h.type, h.decidedBy]));
+
   return (
     <div className="max-w-6xl space-y-6">
       <div className="flex items-center justify-between">
@@ -23,10 +31,23 @@ export function RequestsPage() {
         <RaiseDiscountDialog />
       </div>
 
+      <div className="relative max-w-sm">
+        <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Search by student, id or type…"
+          className="pl-9"
+        />
+      </div>
+
       <Card>
         <CardHeader><CardTitle className="flex items-center gap-2"><Clock className="w-4 h-4 text-primary" /> Pending</CardTitle></CardHeader>
         <CardContent className="space-y-2">
-          {approvals.map((a, i) => (
+          {filteredApprovals.length === 0 && (
+            <p className="text-sm text-muted-foreground text-center py-6">No pending requests match your search.</p>
+          )}
+          {filteredApprovals.map((a, i) => (
             <motion.div
               key={a.id}
               initial={{ opacity: 0, y: 6 }}
@@ -57,7 +78,10 @@ export function RequestsPage() {
       <Card>
         <CardHeader><CardTitle>History</CardTitle></CardHeader>
         <CardContent className="space-y-2">
-          {approvalHistory.map((h) => (
+          {filteredHistory.length === 0 && (
+            <p className="text-sm text-muted-foreground text-center py-6">No history matches your search.</p>
+          )}
+          {filteredHistory.map((h) => (
             <div key={h.id} className="flex items-center justify-between p-3 border rounded-md">
               <div>
                 <div className="text-sm">{h.student} · <span className="text-muted-foreground">{h.type}</span></div>

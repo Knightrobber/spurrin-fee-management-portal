@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "../../ui/input";
 import { Label } from "../../ui/label";
 import { fromDDMMYYYY, isValidDDMMYYYY, maskDateInput } from "../../../lib/dates";
-import { createBatch, createCategory, createCourse, type Batch, type Category, type Course } from "../../../lib/feeCatalogStore";
+import { createBatch, createCategory, createCourse, type Batch, type Category, type Course } from "../../../lib/api/feeCatalogApi";
 
 type DialogProps<T> = { open: boolean; onOpenChange: (open: boolean) => void; onCreated: (entity: T) => void };
 
@@ -18,12 +18,12 @@ export function CreateCourseDialog({ open, onOpenChange, onCreated }: DialogProp
     setDuration("4");
   };
 
-  const submit = () => {
+  const submit = async () => {
     if (!name.trim()) return toast.error("Enter a course name");
     const years = Number(duration);
     if (!Number.isFinite(years) || years <= 0) return toast.error("Enter a valid duration in years");
     try {
-      const course = createCourse({ name: name.trim(), durationYears: years });
+      const course = await createCourse({ name: name.trim(), durationYears: years });
       toast.success(`Course "${course.name}" created`);
       onCreated(course);
       onOpenChange(false);
@@ -38,7 +38,13 @@ export function CreateCourseDialog({ open, onOpenChange, onCreated }: DialogProp
       open={open}
       onOpenChange={(o) => {
         onOpenChange(o);
-        if (!o) reset();
+        if (!o) {
+          reset();
+          // This dialog can be opened from a Select that's still finishing its own
+          // close; Radix sometimes fails to hand focus/pointer-events back to the
+          // page afterward, leaving everything behind it unclickable. Clear it defensively.
+          document.body.style.pointerEvents = "";
+        }
       }}
     >
       <DialogContent className="max-w-sm">
@@ -76,10 +82,10 @@ export function CreateCategoryDialog({ open, onOpenChange, onCreated }: DialogPr
 
   const reset = () => setName("");
 
-  const submit = () => {
+  const submit = async () => {
     if (!name.trim()) return toast.error("Enter a category name");
     try {
-      const category = createCategory({ name: name.trim() });
+      const category = await createCategory({ name: name.trim() });
       toast.success(`Category "${category.name}" created`);
       onCreated(category);
       onOpenChange(false);
@@ -94,7 +100,13 @@ export function CreateCategoryDialog({ open, onOpenChange, onCreated }: DialogPr
       open={open}
       onOpenChange={(o) => {
         onOpenChange(o);
-        if (!o) reset();
+        if (!o) {
+          reset();
+          // This dialog can be opened from a Select that's still finishing its own
+          // close; Radix sometimes fails to hand focus/pointer-events back to the
+          // page afterward, leaving everything behind it unclickable. Clear it defensively.
+          document.body.style.pointerEvents = "";
+        }
       }}
     >
       <DialogContent className="max-w-sm">
@@ -125,14 +137,14 @@ export function CreateBatchDialog({ open, onOpenChange, onCreated }: DialogProps
     setEnd("");
   };
 
-  const submit = () => {
+  const submit = async () => {
     if (!name.trim()) return toast.error("Enter a batch name");
     const startIso = fromDDMMYYYY(start);
     const endIso = fromDDMMYYYY(end);
     if (!startIso || !endIso) return toast.error("Enter valid start and end dates (DD/MM/YYYY)");
     if (endIso <= startIso) return toast.error("End date must be after the start date");
     try {
-      const batch = createBatch({ name: name.trim(), startDate: startIso, endDate: endIso });
+      const batch = await createBatch({ name: name.trim(), startDate: startIso, endDate: endIso });
       toast.success(`Batch "${batch.name}" created`);
       onCreated(batch);
       onOpenChange(false);
@@ -147,7 +159,13 @@ export function CreateBatchDialog({ open, onOpenChange, onCreated }: DialogProps
       open={open}
       onOpenChange={(o) => {
         onOpenChange(o);
-        if (!o) reset();
+        if (!o) {
+          reset();
+          // This dialog can be opened from a Select that's still finishing its own
+          // close; Radix sometimes fails to hand focus/pointer-events back to the
+          // page afterward, leaving everything behind it unclickable. Clear it defensively.
+          document.body.style.pointerEvents = "";
+        }
       }}
     >
       <DialogContent className="max-w-sm">

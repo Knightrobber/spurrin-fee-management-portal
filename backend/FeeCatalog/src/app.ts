@@ -1,4 +1,5 @@
 import Fastify, { FastifyInstance } from 'fastify';
+import fastifyCors from '@fastify/cors';
 import fastifySwagger from '@fastify/swagger';
 import fastifySwaggerUi from '@fastify/swagger-ui';
 import { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
@@ -21,6 +22,11 @@ export async function buildApp(): Promise<FastifyInstance> {
   }).withTypeProvider<TypeBoxTypeProvider>();
 
   registerErrorHandler(app);
+
+  await app.register(fastifyCors, {
+    origin: process.env.NODE_ENV === 'production' ? false : true,
+    methods: ['GET', 'POST', 'DELETE']
+  });
 
   await app.register(fastifySwagger, {
     openapi: {

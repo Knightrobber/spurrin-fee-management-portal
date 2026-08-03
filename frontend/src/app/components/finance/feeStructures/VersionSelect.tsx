@@ -1,6 +1,6 @@
 import { GitBranch } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../ui/select";
-import type { FeeStructureVersion } from "../../../lib/feeCatalogStore";
+import type { FeeStructureVersion } from "../../../lib/api/feeCatalogApi";
 import { VersionStatusBadge } from "./shared";
 
 /** Version switcher for the detail page — every version, newest first, Active clearly labeled. */

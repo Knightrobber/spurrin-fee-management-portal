@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { UploadCloud } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "../../ui/badge";
@@ -12,7 +13,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "../../ui/alert-dialog";
-import { deleteVersion, publishVersion, type FeeStructureVersion, type VersionStatus } from "../../../lib/feeCatalogStore";
+import { deleteVersion, publishVersion, type FeeStructureVersion, type VersionStatus } from "../../../lib/api/feeCatalogApi";
 
 const STATUS_STYLES: Record<VersionStatus, string> = {
   ACTIVE: "text-green-700 border-green-200 bg-green-50",
@@ -50,18 +51,24 @@ export function PublishVersionButton({
   label = "Publish",
   className,
 }: { lineageId: string; versionId: string; onPublished: () => void } & ActionButtonProps) {
+  const [publishing, setPublishing] = useState(false);
+
   return (
     <Button
       size={size}
       variant={variant}
       className={`gap-1.5 ${className ?? ""}`}
-      onClick={() => {
+      disabled={publishing}
+      onClick={async () => {
+        setPublishing(true);
         try {
-          publishVersion(lineageId, versionId);
+          await publishVersion(lineageId, versionId);
           toast.success("Version published — now active");
           onPublished();
         } catch (err) {
           toast.error(err instanceof Error ? err.message : "Could not publish version");
+        } finally {
+          setPublishing(false);
         }
       }}
     >
@@ -104,10 +111,10 @@ export function DeleteVersionDialog({
           <AlertDialogCancel>Cancel</AlertDialogCancel>
           <AlertDialogAction
             className="bg-destructive text-white hover:bg-destructive/90"
-            onClick={() => {
+            onClick={async () => {
               if (!version) return;
               try {
-                deleteVersion(lineageId, version.versionId);
+                await deleteVersion(lineageId, version.versionId);
                 toast.success("Version deleted");
                 onDeleted();
               } catch (err) {

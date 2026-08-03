@@ -1,4 +1,4 @@
-import { useReducer, useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import {
   AlarmClock,
@@ -12,21 +12,26 @@ import {
   Tag,
   Trash2,
 } from "lucide-react";
+import { toast } from "sonner";
 import { Card, CardContent } from "../../ui/card";
 import { Button } from "../../ui/button";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../../ui/accordion";
 import { inr } from "../../../lib/mock";
 import { toDDMMYYYY } from "../../../lib/dates";
 import {
-  computeAnnualTotal,
   computeOneTimeTotal,
+  computeTotal,
   getActiveVersion,
+  getBatchById,
+  getCategoryById,
+  getCourseById,
   getLineage,
-  listBatches,
-  listCategories,
-  listCourses,
+  type Batch,
+  type Category,
+  type Course,
+  type FeeStructureLineage,
   type FeeStructureVersion,
-} from "../../../lib/feeCatalogStore";
+} from "../../../lib/api/feeCatalogApi";
 import { DeleteVersionDialog, PublishVersionButton, VersionStatusBadge } from "./shared";
 import { VersionSelect } from "./VersionSelect";
 
@@ -46,11 +51,64 @@ export function FeeStructureDetail({
   onBack: () => void;
   onEdit: () => void;
 }) {
-  const [, refresh] = useReducer((c) => c + 1, 0);
+  const [lineage, setLineage] = useState<FeeStructureLineage | null | undefined>(null);
+  const [course, setCourse] = useState<Course | undefined>(undefined);
+  const [category, setCategory] = useState<Category | undefined>(undefined);
+  const [batch, setBatch] = useState<Batch | undefined>(undefined);
   const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<FeeStructureVersion | null>(null);
+  const [refreshToken, setRefreshToken] = useState(0);
+  const refresh = () => setRefreshToken((c) => c + 1);
 
-  const lineage = getLineage(lineageId);
+  useEffect(() => {
+    let cancelled = false;
+    setLineage(null);
+    getLineage(lineageId)
+      .then((l) => {
+        if (!cancelled) setLineage(l ?? undefined);
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          toast.error(err instanceof Error ? err.message : "Could not load fee structure");
+          setLineage(undefined);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [lineageId, refreshToken]);
+
+  useEffect(() => {
+    if (!lineage) return;
+    let cancelled = false;
+    Promise.all([getCourseById(lineage.courseId), getCategoryById(lineage.categoryId), getBatchById(lineage.batchId)])
+      .then(([c, cat, b]) => {
+        if (cancelled) return;
+        setCourse(c);
+        setCategory(cat);
+        setBatch(b);
+      })
+      .catch((err) => {
+        if (!cancelled) toast.error(err instanceof Error ? err.message : "Could not load course, category or batch");
+      });
+    return () => {
+      cancelled = true;
+    };
+    // Only re-fetch when the referenced entities actually change, not on every
+    // lineage refresh (e.g. after publishing/deleting a version).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lineage?.courseId, lineage?.categoryId, lineage?.batchId]);
+
+  if (lineage === null) {
+    return (
+      <div className="max-w-3xl space-y-4">
+        <Button variant="ghost" size="sm" onClick={onBack} className="gap-2">
+          <ArrowLeft className="w-4 h-4" /> Back to fee structures
+        </Button>
+        <p className="text-sm text-muted-foreground">Loading fee structure…</p>
+      </div>
+    );
+  }
 
   if (!lineage) {
     return (
@@ -64,9 +122,6 @@ export function FeeStructureDetail({
   }
 
   const version = lineage.versions.find((v) => v.versionId === selectedVersionId) ?? getActiveVersion(lineage);
-  const course = listCourses().find((c) => c.id === lineage.courseId);
-  const category = listCategories().find((c) => c.id === lineage.categoryId);
-  const batch = listBatches().find((b) => b.id === lineage.batchId);
 
   return (
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="max-w-5xl space-y-6">
@@ -128,7 +183,7 @@ export function FeeStructureDetail({
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <StatTile icon={Layers} tone="blue" label="Terms" value={String(version.terms.length)} />
-        <StatTile icon={IndianRupee} tone="green" label="Annual total" value={inr(computeAnnualTotal(version))} />
+        <StatTile icon={IndianRupee} tone="green" label="Total" value={inr(computeTotal(version))} />
         <StatTile icon={Receipt} tone="amber" label="One-time costs" value={inr(computeOneTimeTotal(version))} />
         <StatTile icon={AlarmClock} tone="rose" label="Late fee / day" value={inr(version.lateFeePerDay)} />
       </div>
@@ -143,7 +198,7 @@ export function FeeStructureDetail({
                     <Layers className="w-4 h-4 text-primary" /> Terms
                   </span>
                   <span className="text-xs text-muted-foreground font-normal">
-                    {version.terms.length} terms · {inr(computeAnnualTotal(version))}
+                    {version.terms.length} terms · {inr(computeTotal(version))}
                   </span>
                 </div>
               </AccordionTrigger>

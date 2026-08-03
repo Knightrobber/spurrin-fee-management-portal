@@ -1,6 +1,6 @@
 import { motion } from "motion/react";
 import { useState } from "react";
-import { Plus, TrendingDown, TrendingUp, Repeat } from "lucide-react";
+import { Plus, TrendingDown, TrendingUp, Repeat, Search } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
@@ -15,6 +15,10 @@ import { addOns, inr } from "../../lib/mock";
 import { toast } from "sonner";
 
 export function AddOnsPage() {
+  const [q, setQ] = useState("");
+  const ql = q.trim().toLowerCase();
+  const filtered = addOns.filter((a) => !ql || a.name.toLowerCase().includes(ql));
+
   return (
     <div className="max-w-6xl space-y-6">
       <div className="flex items-center justify-between">
@@ -27,8 +31,24 @@ export function AddOnsPage() {
         <NewAddOnDialog />
       </div>
 
+      <div className="relative max-w-sm">
+        <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Search add-ons…"
+          className="pl-9"
+        />
+      </div>
+
+      {filtered.length === 0 && (
+        <div className="rounded-lg border border-dashed p-12 text-center text-sm text-muted-foreground">
+          No add-ons match your search.
+        </div>
+      )}
+
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {addOns.map((a, i) => {
+        {filtered.map((a, i) => {
           const negative = a.amount < 0;
           return (
             <motion.div

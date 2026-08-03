@@ -11,6 +11,9 @@ import {
   createFeeStructure,
   defaultFeeStructureName,
   getActiveVersion,
+  getBatchById,
+  getCategoryById,
+  getCourseById,
   getLineage,
   listBatches,
   listCategories,
@@ -22,7 +25,7 @@ import {
   type FeeStructureInput,
   type FeeStructureLineage,
   type TermInput,
-} from "../../../lib/feeCatalogStore";
+} from "../../../lib/api/feeCatalogApi";
 import { CreatableSelect } from "./CreatableSelect";
 import { CreateBatchDialog, CreateCategoryDialog, CreateCourseDialog } from "./CreateEntityDialogs";
 import { ClonePopover } from "./ClonePopover";
@@ -52,6 +55,12 @@ type FormState = {
 /** Extra classes for a field whose value differs from the baseline it's being compared against. */
 function editedRing(dirty: boolean): string {
   return dirty ? "border-blue-400 ring-2 ring-blue-100" : "";
+}
+
+/** Fetched entities, plus any locally-appended ones (by id) that the fetch doesn't include yet. */
+function mergeById<T extends { id: string }>(fetched: T[], appended: T[]): T[] {
+  const missing = appended.filter((a) => !fetched.some((f) => f.id === a.id));
+  return [...fetched, ...missing];
 }
 
 function blankTerm(): TermDraft {
@@ -200,16 +209,120 @@ export function StructureFormPage({
   onSaved: (lineageId: string) => void;
 }) {
   const isEdit = mode === "edit";
-  const lineage = isEdit && lineageId ? getLineage(lineageId) : undefined;
 
-  const [state, setState] = useState<FormState>(() => (lineage ? stateFromLineage(lineage) : blankState()));
-  const [baseline, setBaseline] = useState<FormState | null>(() => (lineage ? stateFromLineage(lineage) : null));
-  const [courses, setCourses] = useState<Course[]>(() => listCourses());
-  const [categories, setCategories] = useState<Category[]>(() => listCategories());
-  const [batches, setBatches] = useState<Batch[]>(() => listBatches());
+  const [status, setStatus] = useState<"loading" | "ready" | "not-found">(isEdit ? "loading" : "ready");
+  const [lineage, setLineage] = useState<FeeStructureLineage | undefined>(undefined);
+  const [state, setState] = useState<FormState>(blankState());
+  const [baseline, setBaseline] = useState<FormState | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  // Edit mode only shows the resolved course/category/batch as a read-only chip.
+  const [editCourse, setEditCourse] = useState<Course | undefined>(undefined);
+  const [editCategory, setEditCategory] = useState<Category | undefined>(undefined);
+  const [editBatch, setEditBatch] = useState<Batch | undefined>(undefined);
+
+  // Create mode's dropdown options are fetched lazily, the first time each
+  // dropdown is opened, instead of eagerly on mount.
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [batches, setBatches] = useState<Batch[]>([]);
+  const [coursesStatus, setCoursesStatus] = useState<"idle" | "loading" | "loaded">("idle");
+  const [categoriesStatus, setCategoriesStatus] = useState<"idle" | "loading" | "loaded">("idle");
+  const [batchesStatus, setBatchesStatus] = useState<"idle" | "loading" | "loaded">("idle");
+
   const [createCourseOpen, setCreateCourseOpen] = useState(false);
   const [createCategoryOpen, setCreateCategoryOpen] = useState(false);
   const [createBatchOpen, setCreateBatchOpen] = useState(false);
+
+  useEffect(() => {
+    if (!isEdit || !lineageId) return;
+    let cancelled = false;
+    setStatus("loading");
+    getLineage(lineageId)
+      .then((l) => {
+        if (cancelled) return;
+        if (!l) {
+          setStatus("not-found");
+          return;
+        }
+        setLineage(l);
+        setState(stateFromLineage(l));
+        setBaseline(stateFromLineage(l));
+        setStatus("ready");
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        toast.error(err instanceof Error ? err.message : "Could not load fee structure");
+        setStatus("not-found");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isEdit, lineageId]);
+
+  useEffect(() => {
+    if (!isEdit || !lineage) return;
+    let cancelled = false;
+    Promise.all([getCourseById(lineage.courseId), getCategoryById(lineage.categoryId), getBatchById(lineage.batchId)])
+      .then(([c, cat, b]) => {
+        if (cancelled) return;
+        setEditCourse(c);
+        setEditCategory(cat);
+        setEditBatch(b);
+      })
+      .catch((err) => {
+        if (!cancelled) toast.error(err instanceof Error ? err.message : "Could not load course, category or batch");
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isEdit, lineage?.courseId, lineage?.categoryId, lineage?.batchId]);
+
+  const ensureCoursesLoaded = () => {
+    if (coursesStatus !== "idle") return;
+    setCoursesStatus("loading");
+    listCourses()
+      .then((c) => {
+        // A course created while this fetch was in flight (via the dropdown's
+        // "create new" option) was appended optimistically — keep it even if
+        // this now-stale fetch doesn't include it yet.
+        setCourses((prev) => mergeById(c, prev));
+        setCoursesStatus("loaded");
+      })
+      .catch((err) => {
+        toast.error(err instanceof Error ? err.message : "Could not load courses");
+        setCoursesStatus("idle");
+      });
+  };
+
+  const ensureCategoriesLoaded = () => {
+    if (categoriesStatus !== "idle") return;
+    setCategoriesStatus("loading");
+    listCategories()
+      .then((c) => {
+        setCategories((prev) => mergeById(c, prev));
+        setCategoriesStatus("loaded");
+      })
+      .catch((err) => {
+        toast.error(err instanceof Error ? err.message : "Could not load categories");
+        setCategoriesStatus("idle");
+      });
+  };
+
+  const ensureBatchesLoaded = () => {
+    if (batchesStatus !== "idle") return;
+    setBatchesStatus("loading");
+    listBatches()
+      .then((b) => {
+        setBatches((prev) => mergeById(b, prev));
+        setBatchesStatus("loaded");
+      })
+      .catch((err) => {
+        toast.error(err instanceof Error ? err.message : "Could not load batches");
+        setBatchesStatus("idle");
+      });
+  };
 
   // Auto-derive the name from course/category/batch in create mode, only
   // until the finance user types (or clones in) something of their own.
@@ -224,7 +337,18 @@ export function StructureFormPage({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.courseId, state.categoryId, state.batchId]);
 
-  if (isEdit && !lineage) {
+  if (status === "loading") {
+    return (
+      <div className="max-w-3xl space-y-4">
+        <Button variant="ghost" size="sm" onClick={onCancel} className="gap-2">
+          <ArrowLeft className="w-4 h-4" /> Back
+        </Button>
+        <p className="text-sm text-muted-foreground">Loading fee structure…</p>
+      </div>
+    );
+  }
+
+  if (status === "not-found") {
     return (
       <div className="max-w-3xl space-y-4">
         <Button variant="ghost" size="sm" onClick={onCancel} className="gap-2">
@@ -292,7 +416,7 @@ export function StructureFormPage({
     toast.success(`Cloned from "${getActiveVersion(source).name}"`);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (mode === "create" && (!state.courseId || !state.categoryId || !state.batchId)) {
       toast.error("Choose a course, category and batch.");
       return;
@@ -302,9 +426,10 @@ export function StructureFormPage({
       toast.error(result.error);
       return;
     }
+    setSaving(true);
     try {
       if (mode === "create") {
-        const created = createFeeStructure({
+        const created = await createFeeStructure({
           ...result.payload,
           courseId: state.courseId!,
           categoryId: state.categoryId!,
@@ -313,12 +438,14 @@ export function StructureFormPage({
         toast.success("Fee structure created");
         onSaved(created.lineageId);
       } else if (lineage) {
-        createDraftVersion(lineage.lineageId, result.payload);
+        await createDraftVersion(lineage.lineageId, result.payload);
         toast.success("Draft version created — publish it from the fee structure page to make it active");
         onSaved(lineage.lineageId);
       }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not save fee structure");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -374,13 +501,15 @@ export function StructureFormPage({
               <div>
                 <Label className="text-sm">Course</Label>
                 {isEdit ? (
-                  <EntityChip label={courses.find((c) => c.id === lineage?.courseId)?.name ?? "—"} />
+                  <EntityChip label={editCourse?.name ?? "—"} />
                 ) : (
                   <CreatableSelect
                     className={`mt-2 ${editedRing(courseDirty)}`}
                     value={state.courseId}
                     onChange={(id) => setState((s) => ({ ...s, courseId: id }))}
                     options={courses.map((c) => ({ id: c.id, label: c.name }))}
+                    loading={coursesStatus === "loading"}
+                    onOpen={ensureCoursesLoaded}
                     placeholder="Select course"
                     createLabel="Create new course"
                     onCreateRequested={() => setCreateCourseOpen(true)}
@@ -390,13 +519,15 @@ export function StructureFormPage({
               <div>
                 <Label className="text-sm">Category</Label>
                 {isEdit ? (
-                  <EntityChip label={categories.find((c) => c.id === lineage?.categoryId)?.name ?? "—"} />
+                  <EntityChip label={editCategory?.name ?? "—"} />
                 ) : (
                   <CreatableSelect
                     className={`mt-2 ${editedRing(categoryDirty)}`}
                     value={state.categoryId}
                     onChange={(id) => setState((s) => ({ ...s, categoryId: id }))}
                     options={categories.map((c) => ({ id: c.id, label: c.name }))}
+                    loading={categoriesStatus === "loading"}
+                    onOpen={ensureCategoriesLoaded}
                     placeholder="Select category"
                     createLabel="Create new category"
                     onCreateRequested={() => setCreateCategoryOpen(true)}
@@ -406,13 +537,15 @@ export function StructureFormPage({
               <div>
                 <Label className="text-sm">Batch</Label>
                 {isEdit ? (
-                  <EntityChip label={batches.find((b) => b.id === lineage?.batchId)?.name ?? "—"} />
+                  <EntityChip label={editBatch?.name ?? "—"} />
                 ) : (
                   <CreatableSelect
                     className={`mt-2 ${editedRing(batchDirty)}`}
                     value={state.batchId}
                     onChange={(id) => setState((s) => ({ ...s, batchId: id }))}
                     options={batches.map((b) => ({ id: b.id, label: b.name }))}
+                    loading={batchesStatus === "loading"}
+                    onOpen={ensureBatchesLoaded}
                     placeholder="Select batch"
                     createLabel="Create new batch"
                     onCreateRequested={() => setCreateBatchOpen(true)}
@@ -515,17 +648,19 @@ export function StructureFormPage({
       </Card>
 
       <div className="flex justify-end gap-2">
-        <Button variant="outline" onClick={onCancel}>
+        <Button variant="outline" onClick={onCancel} disabled={saving}>
           Cancel
         </Button>
-        <Button onClick={handleSave}>{isEdit ? "Save as new draft" : "Create fee structure"}</Button>
+        <Button onClick={handleSave} disabled={saving}>
+          {saving ? "Saving…" : isEdit ? "Save as new draft" : "Create fee structure"}
+        </Button>
       </div>
 
       <CreateCourseDialog
         open={createCourseOpen}
         onOpenChange={setCreateCourseOpen}
         onCreated={(c) => {
-          setCourses(listCourses());
+          setCourses((prev) => [...prev, c]);
           setState((s) => ({ ...s, courseId: c.id }));
         }}
       />
@@ -533,7 +668,7 @@ export function StructureFormPage({
         open={createCategoryOpen}
         onOpenChange={setCreateCategoryOpen}
         onCreated={(c) => {
-          setCategories(listCategories());
+          setCategories((prev) => [...prev, c]);
           setState((s) => ({ ...s, categoryId: c.id }));
         }}
       />
@@ -541,7 +676,7 @@ export function StructureFormPage({
         open={createBatchOpen}
         onOpenChange={setCreateBatchOpen}
         onCreated={(b) => {
-          setBatches(listBatches());
+          setBatches((prev) => [...prev, b]);
           setState((s) => ({ ...s, batchId: b.id }));
         }}
       />
